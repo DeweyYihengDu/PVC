@@ -1,0 +1,338 @@
+---
+output: 
+  bookdown::html_document2:
+    code_folding: show
+    number_sections: no
+    toc: yes
+    toc_depth: 6
+    toc_float: yes
+---
+
+# Load the packages and data
+```{r}
+library('xlsx')
+library(caret)
+library(tidyverse)
+library(glmnet)
+library(survminer)
+library(timeROC)
+library(e1071)
+library(xgboost)
+library(randomForest)
+```
+
+```{r}
+env_list <- read.xlsx("environment.xlsx", sheetIndex=1)
+genome <- read.xlsx("总基因组.xlsx", sheetIndex = 1)
+protein <- read.csv('./protein2/my_data.csv')
+```
+
+
+
+# Tidy the environment data
+
+
+```{r}
+df3 <- merge(env_list,genome, by.x = 'name',by.y='生境1')
+df4 <- data.frame(df3$Assembly.基因组编号.,
+                  df3$group1)
+colnames(df4)[1] <- "GCA_id"
+colnames(protein)[1] <- "GCA"
+data <- merge(df4,protein,by.x='GCA_id',by.y = 'GCA')
+colnames(data)[2] <- "group1"
+data <- data[, -3]
+water_data <- data %>% filter(group1 == "water")
+non_water_data <- data %>% filter(group1 == "non_water")
+```
+
+# t-test
+
+```{r}
+# 读入数据
+
+# 提取数值型变量的列名
+numeric_cols <- names(data)[sapply(data, is.numeric)]
+
+# 创建一个空数据框，用于保存检验结果
+ttest_results <- data.frame(variable = character(), 
+                             p.value = numeric(),
+                             stringsAsFactors = FALSE)
+
+# 循环遍历数值型变量，对每个变量进行t检验
+for (col in numeric_cols) {
+  ttest_result <- t.test(data[[col]] ~ data$group1)
+  ttest_results <- rbind(ttest_results, 
+                         data.frame(variable = col, p.value = ttest_result$p.value))
+}
+```
+
+The result of the t-test and the p-value < 0.01
+
+```{r,results='hide'}
+significant_vars <- ttest_results %>% 
+  filter(p.value < 0.01) %>% 
+  select(variable)
+significant_vars
+```
+
+# The random forest model
+
+
+```{r}
+
+
+data$group1 <- as.factor(data$group1)
+
+# 划分训练集和测试集
+set.seed(111)
+train_idx <- sample(1:nrow(data), 0.8 * nrow(data))
+train_data <- data[train_idx, ]
+test_data <- data[-train_idx, ]
+
+# 训练随机森林模型
+rf_model <- randomForest(group1 ~ ., data = train_data, importance = TRUE)
+print(rf_model)
+```
+
+
+```{r}
+rf_model <- randomForest(group1 ~ ., data = train_data)
+importance_df <- data.frame(Feature = row.names(importance(rf_model)),
+                             Importance = importance(rf_model)[, "MeanDecreaseGini"])
+```
+
+```{r}
+importance_df_sort <- importance_df %>% arrange(Importance)
+```
+
+```{r}
+importance_df_sort
+```
+
+
+
+```{r}
+# 绘制特征重要性图
+ggplot(importance_df_sort, aes(x = Feature, y = Importance)) +
+  geom_point(size = 3, color = "dodgerblue4") +
+  NULL
+
+
+
+
+```
+
+
+```{r}
+library(pROC)
+
+# 将测试集的标签转化为因子型
+test_labels <- factor(test_data$group1, levels = c("non_water", "water"))
+train_labels <- factor(train_data$group1, levels = c("non_water", "water"))
+# 使用随机森林模型在测试集上进行预测
+rf_predictions <- predict(rf_model, newdata = test_data, type = "prob")
+
+# 提取随机森林在测试集上预测为阳性的概率
+rf_probabilities <- rf_predictions[, "water"]
+
+# 计算 ROC 曲线和 AUC 值
+roc_rf_test <- roc(test_labels, rf_probabilities)
+auc_rf_test <- auc(roc_rf_test)
+
+# 绘制 ROC 曲线图
+ggroc(roc_rf_test) + ggtitle(paste0("Random Forest ROC Curve (AUC = ", round(auc_rf_test, 2), ")"))
+
+```
+
+
+```{r}
+library(ROCR)
+```
+
+
+
+
+# SVM
+
+
+```{r,warning=FALSE}
+# 使用径向基核函数训练SVM模型
+svm_model <- svm(group1 ~ ., data = train_data[, -1], kernel = "radial", cost = 2)
+# 对测试集进行预测
+predictions <- predict(svm_model, test_data[, -1])
+# 计算混淆矩阵
+confusion_matrix <- table(Predicted = predictions, Actual = test_data$group1)
+print(confusion_matrix)
+# 计算准确率
+accuracy <- sum(diag(confusion_matrix)) / sum(confusion_matrix)
+print(paste("Accuracy:", accuracy))
+print(svm_model)
+svm_model$index
+```
+
+
+
+
+```{r}
+# 加载库
+library(pROC)
+
+# 使用径向基核函数训练SVM模型
+svm_model <- svm(group1 ~ ., data = train_data[, -1], kernel = "radial", cost = 2, probability = TRUE)
+
+# 对测试集进行预测
+predictions <- predict(svm_model, test_data[, -1], probability = TRUE)
+
+# 获取预测概率
+probabilities <- attr(predictions, "probabilities")[, 2]
+
+# 计算混淆矩阵
+confusion_matrix <- table(Predicted = predictions, Actual = test_data$group1)
+print(confusion_matrix)
+
+# 计算准确率
+accuracy <- sum(diag(confusion_matrix)) / sum(confusion_matrix)
+print(paste("Accuracy:", accuracy))
+
+# 计算ROC曲线
+roc_curve <- roc(test_data$group1, probabilities)
+
+# 绘制ROC曲线
+plot(roc_curve, main = "ROC Curve", col = "blue", lwd = 2)
+abline(a = 0, b = 1, lwd = 2, col = "gray", lty = 2)
+
+# 计算AUC值
+auc_value <- auc(roc_curve)
+print(paste("AUC:", auc_value))
+
+# 打印SVM模型
+print(svm_model)
+
+# 获取支持向量的索引
+svm_model$index
+
+```
+
+```{r}
+auc_value
+```
+
+
+
+
+
+# GBT model
+
+
+```{r}
+# 提取特征和标签
+train_features <- data.matrix(train_data[, -1])
+train_labels <- as.numeric(train_data$group1) - 1  # 转换为从0开始的数字
+test_features <- data.matrix(test_data[, -1])
+test_labels <- as.numeric(test_data$group1) - 1
+
+# 设置参数
+params <- list(
+  objective = "binary:logistic",
+  eval_metric = "error",
+  max_depth = 6,
+  eta = 0.3
+)
+
+# 训练模型
+gbt_model <- xgboost(
+  data = train_features,
+  label = train_labels,
+  params = params,
+  nrounds = 100,
+  early_stopping_rounds = 3,
+  # watchlist = list(train = list(data = train_features, label = train_labels)),
+  verbose = 1  # 设置为1以显示训练进度
+)
+
+# 对测试集进行预测
+predictions <- predict(gbt_model, test_features)
+predicted_labels <- ifelse(predictions > 0.5, 1, 0)
+
+# 计算混淆矩阵
+confusion_matrix <- table(Predicted = predicted_labels, Actual = test_labels)
+print(confusion_matrix)
+
+# 计算准确率
+accuracy <- sum(diag(confusion_matrix)) / sum(confusion_matrix)
+print(paste("Accuracy:", accuracy))
+
+```
+
+
+
+```{r}
+gbt_model
+```
+
+```{r}
+# 加载库
+library(pROC)
+
+# 计算ROC曲线
+roc_curve <- roc(test_labels, predictions)
+
+# 绘制ROC曲线
+plot(roc_curve, main = "ROC Curve", col = "blue", lwd = 2)
+abline(a = 0, b = 1, lwd = 2, col = "gray", lty = 2)
+
+# 计算AUC值
+auc_value <- auc(roc_curve)
+print(paste("AUC:", auc_value))
+
+# 如果需要，添加其他可视化分析
+
+```
+
+
+```{r, warning=FALSE}
+# 将group1列转换为因子类型
+data$group1 <- as.factor(data$group1)
+
+# 定义交叉验证参数
+k <- 10
+folds <- createFolds(data$group1, k = k, list = TRUE, returnTrain = FALSE)
+# 初始化准确率向量
+accuracies <- numeric(k)
+
+# 进行交叉验证
+for (i in 1:k) {
+  # 分割训练集和测试集
+  train_data <- data[-folds[[i]], ]
+  test_data <- data[folds[[i]], ]
+  
+  # 训练SVM模型
+  svm_model <- svm(group1 ~ ., data = train_data[,-1], kernel = "radial", cost = 15)
+  
+  # 预测测试集
+  predictions <- predict(svm_model, test_data[, -1])
+  
+  # 计算混淆矩阵和准确率
+  confusion_matrix <- table(Predicted = predictions, Actual = test_data$group1)
+  accuracy <- sum(diag(confusion_matrix)) / sum(confusion_matrix)
+  
+  # 保存准确率
+  accuracies[i] <- accuracy
+}
+
+print(accuracies)
+print(paste("Average accuracy:", mean(accuracies)))
+
+```
+
+
+```{r}
+
+```
+
+
+
+
+
+
+
