@@ -1,0 +1,117 @@
+---
+title: "machine learning"
+output: html_document
+---
+
+```{r}
+# library(xlsx)
+library(randomForest)
+library(glmnet)
+library(Matrix)
+```
+
+
+
+```{r}
+pathway <- read.csv('./excel/results_with_env.csv')
+```
+
+```{r}
+data =pathway
+```
+
+```{r}
+# 假设你的数据存储在名为data的数据框中
+features <- data[, 6:ncol(data)-1]  # 第五列及其后面的列作为特征
+target <- data[, 4]/100  # 第四列作为目标
+target
+```
+
+
+```{r}
+head(features)
+head(target)
+```
+
+```{r}
+data <- pathway[,5:ncol(pathway)-1]
+data
+```
+
+
+# t-test
+
+```{r}
+library(h2o)
+
+# 初始化h2o环境
+h2o.init()
+
+# data <- h2o.importFile("your_data.csv")
+
+# 转换为H2OFrame
+data <- as.h2o(data)
+# 分割数据
+# 将数据划分为训练集和验证集
+splits <- h2o.splitFrame(data, ratios = 0.6, seed = 1234)
+train <- splits[[1]]
+test  <- splits[[2]]
+
+# 指定预测目标和输入特征
+y <- "GC"  # 预测目标
+x <- setdiff(names(data), y)  # 输入特征，去除预测目标的列
+
+# 使用H2O的AutoML函数来训练模型
+aml <- h2o.automl(x = x, y = y,
+                  training_frame = train,
+                  leaderboard_frame = test,
+                  max_models = 20,
+                  seed = 1)
+
+# 打印出AutoML的排行榜
+lb <- aml@leaderboard
+print(lb)
+
+# 使用最佳模型进行预测
+preds <- h2o.predict(aml@leader, newdata = test)
+
+# 打印出预测结果
+print(preds)
+```
+
+```{r}
+# 使用模型进行预测
+preds <- h2o.predict(model, newdata = test)
+
+# 转换预测值和实际值为R的向量
+preds_vec <- as.vector(preds$predict)
+actual_vec <- as.vector(test$GC)
+
+# 画出预测值与实际值的散点图
+plot(preds_vec, actual_vec, xlab = "Predicted Values", ylab = "Actual Values",
+     main = "Predicted vs. Actual Values")
+abline(0, 1, col = "red")  # 添加对角线
+```
+
+
+```{r}
+# 计算残差
+residuals <- actual_vec - preds_vec
+
+# 画出残差图
+plot(preds_vec, residuals, xlab = "Predicted Values", ylab = "Residuals",
+     main = "Residual Plot")
+abline(h = 0, col = "red")  # 添加水平线
+
+```
+```{r}
+plot(pathway$GC)
+```
+
+```{r}
+boxplot(data[,2:ncol(data)],names = colnames(data[,2:ncol(data)]))
+```
+```{r}
+cor(data$GC,data[,6])
+```
+
