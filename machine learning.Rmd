@@ -3,11 +3,12 @@ title: "machine learning"
 output: html_document
 ---
 
-```{r}
+```{r,echo=FALSE}
 # library(xlsx)
 library(randomForest)
 library(glmnet)
 library(Matrix)
+library(tidyverse)
 ```
 
 
@@ -17,26 +18,98 @@ pathway <- read.csv('./excel/results_with_env.csv')
 ```
 
 ```{r}
-data =pathway
+data =pathway[,4:ncol(pathway)]
 ```
 
-```{r}
-# 假设你的数据存储在名为data的数据框中
-features <- data[, 6:ncol(data)-1]  # 第五列及其后面的列作为特征
-target <- data[, 4]/100  # 第四列作为目标
-target
-```
 
 
 ```{r}
-head(features)
-head(target)
+# 加载必要的库
+library(dplyr)
+library(tidyverse)
+library(corrr)
+library(Hmisc)
+library(ggplot2)
+library(ggpubr)
+
+# 加载数据
+# data <- read.csv("yourdata.csv")
+
+cor_results <- rcorr(as.matrix(data))
+
+# 将相关性结果和p值分别保存为data frame
+cor_df <- as.data.frame(cor_results$r)
+pvalue_df <- as.data.frame(cor_results$P)
+
+# 获取"A"列的相关性和p值
+cor_A <- cor_df["GC", ]
+pvalue_A <- pvalue_df["GC", ]
+
+# 创建一个新的data frame，包含变量名、相关性和p值
+results <- data.frame(Variable = rownames(cor_A),
+                      Correlation = as.numeric(cor_A),
+                      Pvalue = as.numeric(pvalue_A))
+
+# 筛选出p值小于0.05的列
+selected_cols <- results %>% filter(Pvalue < 0.05)
+
+# 绘制类似于森林图的结果
+ggplot(selected_cols, aes(x = Variable, y = Correlation)) +
+  geom_point() +
+  geom_point(data = selected_cols %>% filter(Pvalue < 0.05), color = "red") +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  coord_flip() +
+  labs(title = "Correlation with Column A",
+       subtitle = "Only correlations with p < 0.05 are shown",
+       x = "Variable",
+       y = "Correlation")
 ```
 
 ```{r}
-data <- pathway[,5:ncol(pathway)-1]
-data
+# 假设你的数据表名为data，A列为"A"
+# 假设你要从第五列开始进行相关性分析
+
+# 存储筛选出的列名
+selected_columns <- c()
+
+# 获取数据表的列数
+num_columns <- ncol(data)
+
+# 循环遍历从第五列开始的其他列
+for (i in 2:num_columns) {
+  # 获取当前列的名称
+  col <- colnames(data)[i]
+  
+  # 计算相关性并进行显著性检验
+  result <- cor.test(data$GC, data[, col])
+  
+  # 检查p值是否小于0.05
+  if (result$p.value < 0.05) {
+    # 如果p值小于0.05，则将列名添加到筛选出的列名中
+    selected_columns <- c(selected_columns, col)
+  }
+}
+
+# 输出筛选出的列名
+selected_columns
 ```
+
+```{r}
+attach(data)
+```
+
+
+```{r}
+x=KT
+model1 <- lm(GC~x)
+plot(GC,x)
+summary(model1)
+x
+```
+
+
+
+
 
 
 # t-test
@@ -79,39 +152,9 @@ preds <- h2o.predict(aml@leader, newdata = test)
 print(preds)
 ```
 
-```{r}
-# 使用模型进行预测
-preds <- h2o.predict(model, newdata = test)
-
-# 转换预测值和实际值为R的向量
-preds_vec <- as.vector(preds$predict)
-actual_vec <- as.vector(test$GC)
-
-# 画出预测值与实际值的散点图
-plot(preds_vec, actual_vec, xlab = "Predicted Values", ylab = "Actual Values",
-     main = "Predicted vs. Actual Values")
-abline(0, 1, col = "red")  # 添加对角线
-```
-
 
 ```{r}
-# 计算残差
-residuals <- actual_vec - preds_vec
+aml@project_name
 
-# 画出残差图
-plot(preds_vec, residuals, xlab = "Predicted Values", ylab = "Residuals",
-     main = "Residual Plot")
-abline(h = 0, col = "red")  # 添加水平线
-
-```
-```{r}
-plot(pathway$GC)
-```
-
-```{r}
-boxplot(data[,2:ncol(data)],names = colnames(data[,2:ncol(data)]))
-```
-```{r}
-cor(data$GC,data[,6])
 ```
 
