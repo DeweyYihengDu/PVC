@@ -9,6 +9,7 @@ library(randomForest)
 library(glmnet)
 library(Matrix)
 library(tidyverse)
+library(h2o)
 ```
 
 
@@ -23,13 +24,10 @@ data =pathway[,4:ncol(pathway)]
 
 
 
+
 ```{r}
-# 加载必要的库
-library(dplyr)
-library(tidyverse)
 library(corrr)
 library(Hmisc)
-library(ggplot2)
 library(ggpubr)
 
 # 加载数据
@@ -115,8 +113,6 @@ x
 # t-test
 
 ```{r}
-library(h2o)
-
 # 初始化h2o环境
 h2o.init()
 
