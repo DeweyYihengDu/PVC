@@ -122,7 +122,7 @@ h2o.init()
 data <- as.h2o(data)
 # 分割数据
 # 将数据划分为训练集和验证集
-splits <- h2o.splitFrame(data, ratios = 0.6, seed = 1234)
+splits <- h2o.splitFrame(data, ratios = 0.8)
 train <- splits[[1]]
 test  <- splits[[2]]
 
@@ -150,7 +150,7 @@ print(preds)
 
 
 ```{r}
-aml@project_name
+print(test)
 
 ```
 
