@@ -1,38 +1,40 @@
 ---
 title: "machine learning"
-output: html_document
+output: 
+  bookdown::html_document2:
+    code_folding: show
+    number_sections: no
+    toc: yes
+    toc_depth: 6
+    toc_float: yes
 ---
 
-```{r,echo=FALSE}
-# library(xlsx)
+```{r,echo=FALSE,warning=FALSE,echo=FALSE}
 library(randomForest)
 library(glmnet)
 library(Matrix)
 library(tidyverse)
 library(h2o)
-```
-
-
-
-```{r}
-pathway <- read.csv('./excel/results_with_env.csv')
-```
-
-```{r}
-data =pathway[,4:ncol(pathway)]
-```
-
-
-
-
-```{r}
 library(corrr)
 library(Hmisc)
 library(ggpubr)
+```
 
-# 加载数据
-# data <- read.csv("yourdata.csv")
 
+# Predict the GC%
+
+Load the data.
+
+```{r}
+pathway <- read.csv('./excel/results_with_env.csv')
+data =pathway[,4:ncol(pathway)]
+attach(data)
+```
+
+
+
+
+```{r}
 cor_results <- rcorr(as.matrix(data))
 
 # 将相关性结果和p值分别保存为data frame
@@ -57,17 +59,13 @@ ggplot(selected_cols, aes(x = Variable, y = Correlation)) +
   geom_point(data = selected_cols %>% filter(Pvalue < 0.05), color = "red") +
   geom_hline(yintercept = 0, linetype = "dashed") +
   coord_flip() +
-  labs(title = "Correlation with Column A",
+  labs(title = "Correlation with GC",
        subtitle = "Only correlations with p < 0.05 are shown",
        x = "Variable",
        y = "Correlation")
 ```
 
 ```{r}
-# 假设你的数据表名为data，A列为"A"
-# 假设你要从第五列开始进行相关性分析
-
-# 存储筛选出的列名
 selected_columns <- c()
 
 # 获取数据表的列数
@@ -83,17 +81,10 @@ for (i in 2:num_columns) {
   
   # 检查p值是否小于0.05
   if (result$p.value < 0.05) {
-    # 如果p值小于0.05，则将列名添加到筛选出的列名中
     selected_columns <- c(selected_columns, col)
   }
 }
-
-# 输出筛选出的列名
 selected_columns
-```
-
-```{r}
-attach(data)
 ```
 
 
@@ -102,7 +93,6 @@ x=KT
 model1 <- lm(GC~x)
 plot(GC,x)
 summary(model1)
-x
 ```
 
 
@@ -116,19 +106,17 @@ x
 # 初始化h2o环境
 h2o.init()
 
-# data <- h2o.importFile("your_data.csv")
-
 # 转换为H2OFrame
-data <- as.h2o(data)
+h2o_data <- as.h2o(data)
 # 分割数据
 # 将数据划分为训练集和验证集
-splits <- h2o.splitFrame(data, ratios = 0.8)
+splits <- h2o.splitFrame(h2o_data, ratios = 0.8)
 train <- splits[[1]]
 test  <- splits[[2]]
 
 # 指定预测目标和输入特征
 y <- "GC"  # 预测目标
-x <- setdiff(names(data), y)  # 输入特征，去除预测目标的列
+x <- setdiff(names(h2o_data), y)  # 输入特征，去除预测目标的列
 
 # 使用H2O的AutoML函数来训练模型
 aml <- h2o.automl(x = x, y = y,
@@ -144,13 +132,10 @@ print(lb)
 # 使用最佳模型进行预测
 preds <- h2o.predict(aml@leader, newdata = test)
 
-# 打印出预测结果
+# 打印出预测结果s
 print(preds)
 ```
 
 
-```{r}
-print(test)
 
-```
 
