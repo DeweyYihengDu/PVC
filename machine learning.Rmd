@@ -18,6 +18,8 @@ library(h2o)
 library(corrr)
 library(Hmisc)
 library(ggpubr)
+library(metafor)
+library(forestploter)
 ```
 
 
@@ -80,13 +82,84 @@ for (i in 2:num_columns) {
   result <- cor.test(data$GC, data[, col])
   
   # 检查p值是否小于0.05
-  if (result$p.value < 0.05) {
+  # 检查p值是否小于0.05，并且非零值数量大于一半
+  if (result$p.value < 0.05 && sum(data[, col] != 0) > (nrow(data) / 2)) {
     selected_columns <- c(selected_columns, col)
   }
 }
 selected_columns
 ```
 
+```{r}
+selected_columns <- data.frame(Column = character(), P_Value = numeric(), Confidence_Interval = character())
+
+# 获取数据表的列数
+num_columns <- ncol(data)
+
+# 循环遍历从第二列开始的其他列
+for (i in 2:num_columns) {
+  # 获取当前列的名称
+  col <- colnames(data)[i]
+  
+  # 计算相关性并进行显著性检验
+  result <- cor.test(data$GC, data[, col])
+  
+  # 检查p值是否小于0.05，并且非零值数量大于一半
+  if (result$p.value < 0.05 && sum(data[, col] != 0) > (nrow(data) / 2)) {
+    # 创建一个包含结果的行
+    row <- data.frame(Column = col,
+                      P_Value = result$p.value,
+                      Confidence_Interval = paste(result$conf.int, collapse = " - "))
+    
+    # 将行添加到选定列的数据框中
+    selected_columns <- rbind(selected_columns, row)
+  }
+}
+
+selected_columns
+
+```
+
+```{r}
+selected_columns$Confidence_Interval
+```
+
+```{r}
+# 将区间拆分为两个数值
+selected_columns$Confidence_Interval <- strsplit(selected_columns$Confidence_Interval, " - ")
+selected_columns$Lower_Bound <- sapply(selected_columns$Confidence_Interval, function(x) as.numeric(x[1]))
+selected_columns$Upper_Bound <- sapply(selected_columns$Confidence_Interval, function(x) as.numeric(x[2]))
+
+# 移除原始的Confidence_Interval列
+selected_columns$Confidence_Interval <- NULL
+# 生成森林图
+ggplot(selected_columns, aes(x = Column, y = P_Value, ymin = Lower_Bound, ymax = Upper_Bound)) +
+  geom_pointrange() +
+  coord_flip() +  # 将图形翻转为水平方向
+  theme_classic()  # 使用经典主题
+```
+
+```{r}
+# 将置信区间分割成两列
+selected_columns$Confidence_Interval <- as.character(selected_columns$Confidence_Interval)
+new_confidence_interval <- strsplit(selected_columns$Confidence_Interval, " - ")
+selected_columns$CI_lower <- sapply(new_confidence_interval, "[[", 1)
+selected_columns$CI_upper <- sapply(new_confidence_interval, "[[", 2)
+
+```
+
+
+
+
+```{r}
+t_data=merge(data[,1]/100,data[,selected_columns])
+data_long <- gather(t_data, key = "Variable", value = "Value", -x)
+ggplot(data_long, aes(x = x, y = Variable, fill = Variable)) +
+  geom_point(position = position_dodge(width = 0.7), size = 3, shape = 21) +
+  geom_hline(yintercept = "", linetype = "dashed", color = "red") +
+  labs(x = "x", y = "Variable", fill = "Variable")+
+  theme_classic()
+```
 
 ```{r}
 x=KT
@@ -95,12 +168,7 @@ plot(GC,x)
 summary(model1)
 ```
 
-
-
-
-
-
-# t-test
+# Auto-Machine learning
 
 ```{r}
 # 初始化h2o环境
