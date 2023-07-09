@@ -8,17 +8,13 @@ output: html_document
 library(openxlsx)
 library(ggplot2)
 library(maps)
-# 读取XLSX文件
+```
+
+# World map
+
+```{r}
 data <- read.xlsx("./Verrucomicrobia全球分布数据.xlsx", sheet = 1)
-
-```
-
-```{r}
-data
-```
-
-
-```{r}
+df <- data
 color_scheme <- c("#AFD888", "#63ADD0", "#FF4540", "#D836C4", "#EE6B9E", "#FF8F40", "#FFFA73", "#00A779")
 
 # 绘制地图
