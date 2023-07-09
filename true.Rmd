@@ -35,11 +35,30 @@ scale_fill_manual(values = color_scheme, name = "Node color for sample environme
     legend.key.size = unit(1.5, "lines")  # 设置图例的大小
   ) +
   NULL
-ggsave("world.pdf",units = "in",width = 17.27, height = 6.8)
+# ggsave("world.pdf",units = "in",width = 17.27, height = 6.8)
+```
+
+# P-cell
+
+```{r}
+p_cell <- read.xlsx("./Verrucomicrobia全球分布数据.xlsx", sheet = 2)
+k=data.frame(t(p_cell),header=TRUE)
+colnames(k) <- k[1, ]
+k <- k[-1, ]
+head(k)
 ```
 
 
+```{r}
+ver <- as.integer(k$`d:Bacteria, p:"Verrucomicrobia"`)
+total <- as.integer(k$`p-all`)-as.integer(k$Un)
+pre <- ver/total
+pre
+```
 
+```{r}
+
+```
 
 
 
