@@ -4,5 +4,47 @@ output: html_document
 
 ```{r}
 
+
+library(openxlsx)
+library(ggplot2)
+library(maps)
+# 读取XLSX文件
+data <- read.xlsx("./Verrucomicrobia全球分布数据.xlsx", sheet = 1)
+
 ```
+
+```{r}
+data
+```
+
+
+```{r}
+color_scheme <- c("#AFD888", "#63ADD0", "#FF4540", "#D836C4", "#EE6B9E", "#FF8F40", "#FFFA73", "#00A779")
+
+# 绘制地图
+world_map <- map_data("world")
+ggplot() +
+  geom_polygon(data = world_map, aes(x = long, y = lat, group = group), fill = "lightgray", color = "gray") +
+  geom_point(data = df, aes(x = longitude_deg, y = latitude_deg, size = `cell%`, fill = interaction(empo_1, empo_2)), alpha = 0.5, shape = 21, color = 'grey40', stroke = 0.5) +
+  scale_size_continuous(name = "Node size for relative abundance (%)", guide = guide_legend(override.aes = list(color = "black",fill="black"))) +
+scale_fill_manual(values = color_scheme, name = "Node color for sample environmental type", guide = guide_legend(override.aes = list(size = 6))) +
+  labs(x = "longitude", y = "latitude") +
+  theme_classic() +
+  theme(
+    plot.title = element_text(size = 18, face = "bold"),  # 设置标题的大小和字体样式
+    axis.title = element_text(size = 14),  # 设置坐标轴标签的大小
+    axis.text = element_text(size = 12),  # 设置坐标轴刻度标签的大小
+    legend.title = element_text(size = 14),  # 设置图例标题的大小
+    legend.text = element_text(size = 12),  # 设置图例标签的大小
+    legend.key.size = unit(1.5, "lines")  # 设置图例的大小
+  ) +
+  NULL
+ggsave("world.pdf",units = "in",width = 17.27, height = 6.8)
+```
+
+
+
+
+
+
 
