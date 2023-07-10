@@ -8,6 +8,8 @@ library(tidyverse)
 library(openxlsx)
 library(ggpubr)
 library(maps)
+library(purrr)
+library(broom)
 ```
 
 # World map
@@ -35,7 +37,7 @@ scale_fill_manual(values = color_scheme, name = "Node color for sample environme
     legend.key.size = unit(1.5, "lines")  # 设置图例的大小
   ) +
   NULL
-# ggsave("world.pdf",units = "in",width = 17.27, height = 6.8)
+ggsave("world.pdf",units = "in",width = 17.27, height = 6.8)
 ```
 
 # P-cell
@@ -66,9 +68,9 @@ p_cell
 
 ```{r}
 ver <- as.integer(p_cell$`d:Bacteria, p:"Verrucomicrobia"`)
-total <- as.integer(p_cell$`p-all`) - as.integer(p_cell$Un)
-pre <- ver / total
-new <- cbind(pre, p_cell)
+# total <- as.integer(p_cell$`p-all`) - as.integer(p_cell$Un)
+# pre <- ver / total
+new <- cbind(ver, p_cell)
 new <- new %>% filter(empo_1 != 'ALL')
 ```
 
@@ -77,18 +79,77 @@ new <- new %>% filter(empo_1 != 'ALL')
 head(new)
 ```
 
+```{r}
+df=new[,1:10]
+```
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(purrr)
+library(broom)
+```
 
 
 ```{r}
-p_value=0.05
-p <- ggplot(new, aes(x = empo_1, y = pre)) +
-  geom_bar(stat = "identity", fill = "steelblue", width = 0.5) +
-  geom_errorbar(aes(ymin = pre - 0.1, ymax = pre + 0.1), width = 0.2, color = "black") +
-  geom_text(aes(label = format(p_value, nsmall = 2)), vjust = -0.5, color = "black", size = 3) +
-  labs(x = "empo_1", y = "Pre", title = "Pre by empo_1") +
-  theme_pubr()
-p
+grouped_data <- df %>%
+  mutate(empo = paste(empo_1, empo_2, sep = "-")) %>%
+  group_by(empo) %>%
+  summarise(mean_pre = mean(pre, na.rm = TRUE),
+            sd_pre = sd(pre, na.rm = TRUE),
+            n = n(),
+            se_pre = sd_pre / sqrt(n))
+
+# 计算每一对类别之间的p值
+p_values <- pairwise.t.test(df$pre, df$empo, p.adjust.method = "BH")$p.value
+
+# 将p值矩阵转换为数据框
+p_values <- as.data.frame(as.table(p_values))
+
+# 将p值转换为显著性级别
+p_values <- p_values %>%
+  mutate(signif_mark = case_when(
+    Freq <= .001 ~ "***",
+    Freq <= .01  ~ "**",
+    Freq <= .05  ~ "*",
+    TRUE ~ "n.s."
+  ))
+
+# 添加到原来的数据框中
+grouped_data <- left_join(grouped_data, p_values, by = c("empo" = "Var2"))
+
+# 然后，我们可以使用ggplot2创建带误差棒和显著性级别的柱状图
+ggplot(grouped_data, aes(x=reorder(empo, -mean_pre), y=mean_pre)) +
+  geom_bar(stat="identity", fill="skyblue", width=0.5) +
+  geom_errorbar(aes(ymin=mean_pre-se_pre, ymax=mean_pre+se_pre), width=.2,
+                position=position_dodge(.9)) +
+  geom_text(aes(label=signif_mark), vjust=-0.5) + # add significance level text
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  xlab("Categories") +
+  ylab("Average of pre")
 ```
+
+
+
+```{r}
+grouped_data <- new %>%
+  group_by(empo_1, empo_2, empo_3) %>%
+  summarize(mean_ver = mean(ver, na.rm = TRUE))
+
+# 然后，我们可以使用ggplot2创建堆叠条形图
+ggplot(grouped_data, aes(x=factor(""), y=mean_ver, fill=interaction(empo_1, empo_2, empo_3))) +
+  geom_bar(stat="identity", width=1) +
+  theme_minimal() +
+  xlab("Categories") +
+  ylab("Average of ver") +
+  theme(legend.position="right")
+```
+
+```{r}
+
+```
+
 
 
 
