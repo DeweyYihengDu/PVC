@@ -4,9 +4,9 @@ output: html_document
 
 ```{r}
 
-
+library(tidyverse)
 library(openxlsx)
-library(ggplot2)
+# library(ggplot2)
 library(maps)
 ```
 
@@ -41,24 +41,53 @@ scale_fill_manual(values = color_scheme, name = "Node color for sample environme
 # P-cell
 
 ```{r}
-p_cell <- read.xlsx("./Verrucomicrobia全球分布数据.xlsx", sheet = 2)
-k=data.frame(t(p_cell),header=TRUE)
-colnames(k) <- k[1, ]
-k <- k[-1, ]
-head(k)
+read_data <- function(n) {
+  data <- read.xlsx("./Verrucomicrobia全球分布数据.xlsx", sheet = n,colNames = FALSE, rowNames = FALSE)
+  k <- data.frame(t(data), header = FALSE)
+  k <- cbind(number = 0:(nrow(k) - 1), k)
+  colnames(k) <- k[1, ]
+  rownames(k) <- k[, 1]
+  k <- k[-1, ]
+  k <- k[, -1]
+
+  
+  return (k)
+}
+
 ```
 
 
 ```{r}
-ver <- as.integer(k$`d:Bacteria, p:"Verrucomicrobia"`)
-total <- as.integer(k$`p-all`)-as.integer(k$Un)
-pre <- ver/total
-pre
+p_cell <- read_data(2)
+p_cell
+```
+
+
+```{r}
+ver <- as.integer(p_cell$`d:Bacteria, p:"Verrucomicrobia"`)
+total <- as.integer(p_cell$`p-all`) - as.integer(p_cell$Un)
+pre <- ver / total
+new <- cbind(pre, p_cell)
+new <- new %>% filter(empo_1 != 'ALL')
 ```
 
 ```{r}
-
+library(ggpubr)
 ```
+
+
+```{r}
+p_value=0.05
+p <- ggplot(new, aes(x = empo_1, y = pre)) +
+  geom_bar(stat = "identity", fill = "steelblue", width = 0.5) +
+  geom_errorbar(aes(ymin = pre - 0.1, ymax = pre + 0.1), width = 0.2, color = "black") +
+  geom_text(aes(label = format(p_value, nsmall = 2)), vjust = -0.5, color = "black", size = 3) +
+  labs(x = "empo_1", y = "Pre", title = "Pre by empo_1") +
+  theme_pubr()
+p
+```
+
+
 
 
 
