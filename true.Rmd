@@ -3,7 +3,7 @@ output: html_document
 ---
 
 ```{r}
-
+library(readxl)
 library(tidyverse)
 library(openxlsx)
 library(ggpubr)
@@ -146,14 +146,12 @@ data <- read_excel("Verrucomicrobia全球分布数据.xlsx", sheet = "p-cell")
 data
 ```
 
-```{r}
-# Load necessary libraries
-library(readxl)
-library(dplyr)
-library(ggplot2)
+# f-cell
 
+```{r}
 # Load the data
-df <- read_excel("f-cell.xlsx")
+# df <- read_excel("f-cell.xlsx")
+df <- read_excel("Verrucomicrobia全球分布数据.xlsx", sheet = "f-cell")
 
 # Filter for rows containing 'p:"Verrucomicrobia"' and remove 'ALL' column
 verrucomicrobia_df <- df %>% 
@@ -175,14 +173,182 @@ verrucomicrobia_melted_df <- verrucomicrobia_melted_df %>%
   group_by(habitat) %>%
   mutate(percentage = count / sum(count) * 100)
 
-# Plot the data
+
+# ggplot(verrucomicrobia_melted_df, aes(x = habitat, y = percentage, fill = empo_1)) +
+#   geom_bar(stat = "identity", position = "dodge") +
+#   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+#   labs(x = "Habitat", y = "Percentage (%)", fill = "Bacteria", title = "Distribution of 'p:Verrucomicrobia' in different habitats") +
+#   guides(fill = guide_legend(ncol = 1, override.aes = list(size = 4)))
+
+# Define a vector of colors
+my_colors <- c("#AFD888", "#63ADD0", "#FF4540", "#D836C4")
+
+# Define a vector of labels
+my_labels <- c("f:Opitutaceae", "f:Puniceicoccaceae", "f:Rubritaleaceae", "f:Verrucomicrobiaceae")
+
+
+
+# Define a dodge width
+my_width <- 0.8
+
+# Define a bar width
+my_bar_width <- 0.7
+
+# Use expand in scale_x_discrete()
 ggplot(verrucomicrobia_melted_df, aes(x = habitat, y = percentage, fill = empo_1)) +
-  geom_bar(stat = "identity", position = "dodge") +
+  geom_bar(stat = "identity", position = position_dodge(width = my_width), color = "black", width = my_bar_width) + # Use different widths for position and geom
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   labs(x = "Habitat", y = "Percentage (%)", fill = "Bacteria", title = "Distribution of 'p:Verrucomicrobia' in different habitats") +
-  guides(fill = guide_legend(ncol = 1, override.aes = list(size = 4)))
+  guides(fill = guide_legend(ncol = 1, override.aes = list(size = 4))) +
+  scale_fill_manual(values = my_colors, labels = my_labels) +
+  theme_classic() +
+  scale_y_discrete(expand = c(0, 0))
+```
+
+# f-otu
+
+
+```{r}
+
+# Load the data
+# df <- read_excel("f-cell.xlsx")
+df <- read_excel("Verrucomicrobia全球分布数据.xlsx", sheet = "f-cell",skip=2)
+df=
+# Filter for rows containing 'p:"Verrucomicrobia"' and remove 'ALL' column
+verrucomicrobia_df <- df %>% 
+  filter(grepl('p:"Verrucomicrobia"', empo_3)) %>%
+  select(-ALL)
+
+# Convert all columns except for 'empo_1' to numeric
+for (col in colnames(verrucomicrobia_df)[-1]) {
+  verrucomicrobia_df[[col]] <- as.numeric(verrucomicrobia_df[[col]])
+}
+
+# Melt the dataframe for easier plotting
+verrucomicrobia_melted_df <- verrucomicrobia_df %>%
+  gather(key = "habitat", value = "count", -empo_3) %>%
+  mutate(habitat = gsub("\\..*$", "", habitat))
+
+# Compute the percentage
+verrucomicrobia_melted_df <- verrucomicrobia_melted_df %>%
+  group_by(habitat) %>%
+  mutate(percentage = count / sum(count) * 100)
+
+
+# ggplot(verrucomicrobia_melted_df, aes(x = habitat, y = percentage, fill = empo_1)) +
+#   geom_bar(stat = "identity", position = "dodge") +
+#   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+#   labs(x = "Habitat", y = "Percentage (%)", fill = "Bacteria", title = "Distribution of 'p:Verrucomicrobia' in different habitats") +
+#   guides(fill = guide_legend(ncol = 1, override.aes = list(size = 4)))
+
+# Define a vector of colors
+my_colors <- c("#AFD888", "#63ADD0", "#FF4540", "#D836C4")
+
+# Define a vector of labels
+my_labels <- c("f:Opitutaceae", "f:Puniceicoccaceae", "f:Rubritaleaceae", "f:Verrucomicrobiaceae")
+
+
+
+my_width <- 0.8
+
+# Define a bar width
+my_bar_width <- 0.7
+
+ggplot(verrucomicrobia_melted_df, aes(x = habitat, y = percentage, fill = empo_3)) +
+  geom_bar(stat = "identity", position = position_dodge(width = my_width), color = "black", width = my_bar_width) +
+  
+  labs(x = "Habitat", y = "Percentage (%)", fill = "Bacteria", title = "Distribution of 'p:Verrucomicrobia' in different habitats") +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+  guides(fill = guide_legend(ncol = 1, override.aes = list(size = 4))) +
+  scale_fill_manual(values = my_colors, labels = my_labels) +
+  theme_classic() +
+  scale_y_discrete(expand = c(0, 0))+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
 ```
+```
+
+
+
+
+```{r}
+# Load the necessary libraries
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+# Read the data
+df <- read_excel("f-cell.xlsx")
+
+# Remove 'ALL' column
+df <- df %>% select(-ALL)
+
+# Melt the dataframe for easier plotting
+df_long <- df %>% 
+  pivot_longer(-empo_1, names_to = "habitat", values_to = "count") %>%
+  filter(grepl('p:"Verrucomicrobia"', empo_1))
+
+# Split the habitat column into empo_1 and empo_2
+df_long <- df_long %>%
+  separate(habitat, into = c("empo_1", "empo_2"), sep = "\\.") %>%
+  mutate(empo_2 = gsub("\\..*$", "", empo_2))
+
+# Compute the percentage
+df_long <- df_long %>%
+  group_by(empo_1, empo_2) %>%
+  mutate(percentage = count / sum(count) * 100)
+
+# Define a vector of colors
+my_colors <- c("#AFD888", "#63ADD0", "#FF4540", "#D836C4")
+
+# Define a vector of labels
+my_labels <- c("f:Opitutaceae", "f:Puniceicoccaceae", "f:Rubritaleaceae", "f:Verrucomicrobiaceae")
+
+# Define a dodge width
+my_width <- 0.8
+
+# Define a bar width
+my_bar_width <- 0.7
+
+# Use expand in scale_x_discrete()
+ggplot(df_long, aes(x = empo_2, y = percentage, fill = empo_1)) +
+  geom_bar(stat = "identity", position = position_dodge(width = my_width), color = "black", width = my_bar_width) +
+  facet_wrap(~ empo_1, scales = "free") +  # Add this line to create separate subplots for each empo_1 category
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x = "Habitat", y = "Percentage (%)", fill = "Bacteria", title = "Distribution of 'p:Verrucomicrobia' in different habitats") +
+  guides(fill = guide_legend(ncol = 1, override.aes = list(size = 4))) +
+  scale_fill_manual(values = my_colors, labels = my_labels) +
+  theme_classic() +
+  scale_y_discrete(expand = c(0, 0))
+
+
+```
+
+
+```{r}
+verrucomicrobia_melted_df
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
