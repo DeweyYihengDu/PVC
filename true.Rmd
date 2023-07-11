@@ -37,7 +37,7 @@ scale_fill_manual(values = color_scheme, name = "Node color for sample environme
     legend.key.size = unit(1.5, "lines")  # 设置图例的大小
   ) +
   NULL
-ggsave("world.pdf",units = "in",width = 17.27, height = 6.8)
+# ggsave("world.pdf",units = "in",width = 17.27, height = 6.8)
 ```
 
 # P-cell
@@ -91,44 +91,7 @@ library(broom)
 ```
 
 
-```{r}
-grouped_data <- df %>%
-  mutate(empo = paste(empo_1, empo_2, sep = "-")) %>%
-  group_by(empo) %>%
-  summarise(mean_pre = mean(pre, na.rm = TRUE),
-            sd_pre = sd(pre, na.rm = TRUE),
-            n = n(),
-            se_pre = sd_pre / sqrt(n))
 
-# 计算每一对类别之间的p值
-p_values <- pairwise.t.test(df$pre, df$empo, p.adjust.method = "BH")$p.value
-
-# 将p值矩阵转换为数据框
-p_values <- as.data.frame(as.table(p_values))
-
-# 将p值转换为显著性级别
-p_values <- p_values %>%
-  mutate(signif_mark = case_when(
-    Freq <= .001 ~ "***",
-    Freq <= .01  ~ "**",
-    Freq <= .05  ~ "*",
-    TRUE ~ "n.s."
-  ))
-
-# 添加到原来的数据框中
-grouped_data <- left_join(grouped_data, p_values, by = c("empo" = "Var2"))
-
-# 然后，我们可以使用ggplot2创建带误差棒和显著性级别的柱状图
-ggplot(grouped_data, aes(x=reorder(empo, -mean_pre), y=mean_pre)) +
-  geom_bar(stat="identity", fill="skyblue", width=0.5) +
-  geom_errorbar(aes(ymin=mean_pre-se_pre, ymax=mean_pre+se_pre), width=.2,
-                position=position_dodge(.9)) +
-  geom_text(aes(label=signif_mark), vjust=-0.5) + # add significance level text
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-  xlab("Categories") +
-  ylab("Average of pre")
-```
 
 
 
@@ -147,12 +110,79 @@ ggplot(grouped_data, aes(x=factor(""), y=mean_ver, fill=interaction(empo_1, empo
 ```
 
 ```{r}
+# Load the necessary libraries
+library(ggplot2)
+library(readxl)
+
+# Load the data
+data <- read_excel("Verrucomicrobia全球分布数据.xlsx", sheet = "p-cell")
+
+# Clean the data: remove the first two rows and convert to numeric
+data <- data[-c(1,2,3),]
+data <- sapply(data, as.numeric)
+
+# Calculate the mean and standard deviation
+mean_values <- colMeans(data, na.rm = TRUE)
+std_values <- apply(data, 2, sd, na.rm = TRUE)
+
+# Plot the bar graph with error bars
+df <- data.frame(Habitat = names(mean_values), Mean = mean_values, SD = std_values)
+ggplot(df, aes(x = Habitat, y = Mean)) +
+  geom_bar(stat = "identity", fill = "skyblue", width = 0.7) +
+  geom_errorbar(aes(ymin = (Mean - SD)/100, ymax = (Mean + SD)/100), width = 0.2) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  labs(title = "Mean Values of Verrucomicrobia Across Different Habitats with Error Bars",
+       x = "Habitat",
+       y = "Mean Value")
+
+# Correlation analysis
+correlation_matrix <- cor(data, use = "pairwise.complete.obs", method = "pearson")
+print(correlation_matrix)
 
 ```
 
+```{r}
+data <- read_excel("Verrucomicrobia全球分布数据.xlsx", sheet = "p-cell")
+data
+```
 
+```{r}
+# Load necessary libraries
+library(readxl)
+library(dplyr)
+library(ggplot2)
 
+# Load the data
+df <- read_excel("f-cell.xlsx")
 
+# Filter for rows containing 'p:"Verrucomicrobia"' and remove 'ALL' column
+verrucomicrobia_df <- df %>% 
+  filter(grepl('p:"Verrucomicrobia"', empo_1)) %>%
+  select(-ALL)
+
+# Convert all columns except for 'empo_1' to numeric
+for (col in colnames(verrucomicrobia_df)[-1]) {
+  verrucomicrobia_df[[col]] <- as.numeric(verrucomicrobia_df[[col]])
+}
+
+# Melt the dataframe for easier plotting
+verrucomicrobia_melted_df <- verrucomicrobia_df %>%
+  gather(key = "habitat", value = "count", -empo_1) %>%
+  mutate(habitat = gsub("\\..*$", "", habitat))
+
+# Compute the percentage
+verrucomicrobia_melted_df <- verrucomicrobia_melted_df %>%
+  group_by(habitat) %>%
+  mutate(percentage = count / sum(count) * 100)
+
+# Plot the data
+ggplot(verrucomicrobia_melted_df, aes(x = habitat, y = percentage, fill = empo_1)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x = "Habitat", y = "Percentage (%)", fill = "Bacteria", title = "Distribution of 'p:Verrucomicrobia' in different habitats") +
+  guides(fill = guide_legend(ncol = 1, override.aes = list(size = 4)))
+
+```
 
 
 
