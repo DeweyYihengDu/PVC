@@ -278,14 +278,12 @@ verrucomicrobia_data <- data[grep("Verrucomicrobia", data$empo_3), ]
 verrucomicrobia_data[1]=c('f:Opitutaceae', 'f:Puniceicoccaceae','f:Rubritaleaceae','f:Verrucomicrobiaceae')
 # Calculate the proportion for each environment
 
-# rownames(verrucomicrobia_data) <- verrucomicrobia_data$empo_3
-# verrucomicrobia_data$empo_3 <- NULL 
 proportions <- sapply(verrucomicrobia_data[-1], function(x) x / sum(x))
 rownames(proportions) <- c('f:Opitutaceae', 'f:Puniceicoccaceae','f:Rubritaleaceae','f:Verrucomicrobiaceae')
 # Create the heatmap
 heatmap <- pheatmap(proportions)
 
-# 保存为 PDF 文件
+
 pdf("heatmap.pdf")
 heatmap
 dev.off()
@@ -294,9 +292,7 @@ dev.off()
 
 
 
-```{r}
-verrucomicrobia_data
-```
+
 
 
 
