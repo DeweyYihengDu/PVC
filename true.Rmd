@@ -8,8 +8,9 @@ library(tidyverse)
 library(openxlsx)
 library(ggpubr)
 library(maps)
-library(purrr)
 library(broom)
+library(reshape2)
+library(pheatmap)
 ```
 
 # World map
@@ -209,8 +210,6 @@ ggplot(verrucomicrobia_melted_df, aes(x = habitat, y = percentage, fill = empo_1
 
 
 ```{r}
-# Load the data
-# df <- read_excel("f-cell.xlsx")
 df <- read_excel("Verrucomicrobia全球分布数据.xlsx", sheet = "f-otu",skip=2)
 df=
 # Filter for rows containing 'p:"Verrucomicrobia"' and remove 'ALL' column
@@ -232,13 +231,6 @@ verrucomicrobia_melted_df <- verrucomicrobia_df %>%
 verrucomicrobia_melted_df <- verrucomicrobia_melted_df %>%
   group_by(habitat) %>%
   mutate(percentage = count / sum(count) * 100)
-
-
-# ggplot(verrucomicrobia_melted_df, aes(x = habitat, y = percentage, fill = empo_1)) +
-#   geom_bar(stat = "identity", position = "dodge") +
-#   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-#   labs(x = "Habitat", y = "Percentage (%)", fill = "Bacteria", title = "Distribution of 'p:Verrucomicrobia' in different habitats") +
-#   guides(fill = guide_legend(ncol = 1, override.aes = list(size = 4)))
 
 # Define a vector of colors
 my_colors <- c("#AFD888", "#63ADD0", "#FF4540", "#D836C4")
@@ -270,13 +262,8 @@ ggsave("f-otu.pdf",units = "in",width = 12, height = 5)
 # Heat-maps f-cell
 
 ```{r}
-library(ggplot2)
-library(reshape2)
-library(pheatmap)
-library(readxl)
-
 # Load the data
-data <- read_xlsx("f-cell.xlsx",skip = 2)
+data <- read_excel("Verrucomicrobia全球分布数据.xlsx", sheet = "f-otu",skip=2)
 
 # Remove the meta-data rows
 # data <- data[-c(1:3), ]
@@ -302,6 +289,9 @@ pheatmap(proportions)
 
 
 
+```{r}
+verrucomicrobia_data
+```
 
 
 
