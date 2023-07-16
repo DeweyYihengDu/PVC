@@ -290,6 +290,34 @@ dev.off()
 
 ```
 
+## g-cell
+
+```{r}
+data <- read_excel("Verrucomicrobia全球分布数据.xlsx", sheet = "f-otu",skip=2)
+
+# Remove the meta-data rows
+# data <- data[-c(1:3), ]
+data <- data[-1, ]
+data <- data %>% select(-ALL)
+sample=c(' g:Pelagicoccus', ' g:Puniceicoccus',' g:Spartobacteria_genera_incertae_sedis','g:Terrimicrobium','g:Xiphinematobacter','g:Limisphaera',"g:Subdivision3_genera_incertae_sedis",)
+# Convert the data to numeric
+data[, -1] <- sapply(data[, -1], as.numeric)
+
+# Filter rows where empo_1 contains 'Verrucomicrobia'
+verrucomicrobia_data <- data[grep("Verrucomicrobia", data$empo_3), ]
+verrucomicrobia_data[1]=sample
+# Calculate the proportion for each environment
+
+proportions <- sapply(verrucomicrobia_data[-1], function(x) x / sum(x))
+rownames(proportions) <- sample
+# Create the heatmap
+heatmap <- pheatmap(proportions)
+pdf("heatmap.pdf")
+heatmap
+dev.off()
+```
+
+
 
 
 
