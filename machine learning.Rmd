@@ -34,39 +34,6 @@ attach(data)
 ```
 
 
-
-
-```{r}
-cor_results <- rcorr(as.matrix(data))
-
-# 将相关性结果和p值分别保存为data frame
-cor_df <- as.data.frame(cor_results$r)
-pvalue_df <- as.data.frame(cor_results$P)
-
-# 获取"A"列的相关性和p值
-cor_A <- cor_df["GC", ]
-pvalue_A <- pvalue_df["GC", ]
-
-# 创建一个新的data frame，包含变量名、相关性和p值
-results <- data.frame(Variable = rownames(cor_A),
-                      Correlation = as.numeric(cor_A),
-                      Pvalue = as.numeric(pvalue_A))
-
-# 筛选出p值小于0.05的列
-selected_cols <- results %>% filter(Pvalue < 0.05)
-
-# 绘制类似于森林图的结果
-ggplot(selected_cols, aes(x = Variable, y = Correlation)) +
-  geom_point() +
-  geom_point(data = selected_cols %>% filter(Pvalue < 0.05), color = "red") +
-  geom_hline(yintercept = 0, linetype = "dashed") +
-  coord_flip() +
-  labs(title = "Correlation with GC",
-       subtitle = "Only correlations with p < 0.05 are shown",
-       x = "Variable",
-       y = "Correlation")
-```
-
 ```{r}
 selected_columns <- c()
 
@@ -139,27 +106,6 @@ ggplot(selected_columns, aes(x = Column, y = P_Value, ymin = Lower_Bound, ymax =
   theme_classic()  # 使用经典主题
 ```
 
-```{r}
-# 将置信区间分割成两列
-selected_columns$Confidence_Interval <- as.character(selected_columns$Confidence_Interval)
-new_confidence_interval <- strsplit(selected_columns$Confidence_Interval, " - ")
-selected_columns$CI_lower <- sapply(new_confidence_interval, "[[", 1)
-selected_columns$CI_upper <- sapply(new_confidence_interval, "[[", 2)
-
-```
-
-
-
-
-```{r}
-t_data=merge(data[,1]/100,data[,selected_columns])
-data_long <- gather(t_data, key = "Variable", value = "Value", -x)
-ggplot(data_long, aes(x = x, y = Variable, fill = Variable)) +
-  geom_point(position = position_dodge(width = 0.7), size = 3, shape = 21) +
-  geom_hline(yintercept = "", linetype = "dashed", color = "red") +
-  labs(x = "x", y = "Variable", fill = "Variable")+
-  theme_classic()
-```
 
 ```{r}
 x=KT
@@ -205,5 +151,52 @@ print(preds)
 ```
 
 
+```{r}
+# Load necessary libraries
+library(glmnet)
+library(caret)
+
+# Load the data
+data <- read.csv("excel/results_with_env.csv")
+
+# Prepare the data
+X <- data[, -(1:4)]
+y <- data$GC
+
+# Standardize the features
+X_scaled <- scale(X)
+
+# Split the data into training set and test set
+set.seed(42)
+trainIndex <- createDataPartition(y, p = .8, 
+                                  list = FALSE, 
+                                  times = 1)
+X_train <- X_scaled[trainIndex,]
+y_train <- y[trainIndex]
+X_test <- X_scaled[-trainIndex,]
+y_test <- y[-trainIndex]
+
+# Define the model
+model <- cv.glmnet(as.matrix(X_train), y_train, alpha = 1)
+
+# Get the lambda that gives minimum mean cross-validated error
+lambda_min <- model$lambda.min
+
+# Fit the model using the optimal lambda
+final_model <- glmnet(as.matrix(X_train), y_train, alpha = 1, lambda = lambda_min)
+
+# Predict on the test set
+predictions <- predict(final_model, newx = as.matrix(X_test))
+
+# Calculate R squared
+SSE <- sum((predictions - y_test)^2)
+SST <- sum((y_test - mean(y_test))^2)
+R_squared <- 1 - SSE / SST
+print(R_squared)
+
+# Print the coefficients
+print(coef(final_model))
+
+```
 
 
