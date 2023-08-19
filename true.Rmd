@@ -23,10 +23,17 @@ color_scheme <- c("#AFD888", "#63ADD0", "#FF4540", "#D836C4", "#EE6B9E", "#FF8F4
 # 绘制地图
 world_map <- map_data("world")
 ggplot() +
-  geom_polygon(data = world_map, aes(x = long, y = lat, group = group), fill = "lightgray", color = "gray") +
-  geom_point(data = df, aes(x = longitude_deg, y = latitude_deg, size = `cell%`, fill = interaction(empo_1, empo_2)), alpha = 0.5, shape = 21, color = 'grey40', stroke = 0.5) +
+  geom_polygon(data = world_map, 
+               aes(x = long, y = lat, group = group), 
+               fill = "lightgray", color = "gray") +
+  geom_point(data = df, aes(x = longitude_deg,
+                            y = latitude_deg, size = `cell%`, 
+                            fill = interaction(empo_1, empo_2)), 
+             alpha = 0.5, shape = 21, 
+             color = 'grey40', stroke = 0.5) +
   scale_size_continuous(name = "Node size for relative abundance (%)", guide = guide_legend(override.aes = list(color = "black",fill="black"))) +
-scale_fill_manual(values = color_scheme, name = "Node color for sample environmental type", guide = guide_legend(override.aes = list(size = 6))) +
+scale_fill_manual(values = color_scheme, 
+                  name = "Node color for sample environmental type", guide = guide_legend(override.aes = list(size = 6))) +
   labs(x = "longitude", y = "latitude") +
   theme_classic() +
   theme(
