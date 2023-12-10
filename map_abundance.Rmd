@@ -1,0 +1,50 @@
+---
+title: "map_abundance"
+author: "Yiheng Du"
+date: "2023-12-10"
+output: html_document
+---
+
+# Load the relevant packages
+
+```{r, include=FALSE}
+library(readxl)
+library(tidyverse)
+library(openxlsx)
+library(ggpubr)
+library(maps)
+library(broom)
+library(reshape2)
+library(pheatmap)
+```
+
+# Import loaction and environment file
+
+```{r}
+data <- read.csv('./env_abundace.csv')
+```
+
+
+```{r}
+head(data)
+```
+
+```{r,message=FALSE}
+abundance <- as.numeric(gsub("%", "", data[,5]))
+coordinates <- strsplit(data[,ncol(data)], ' ')  
+longitude <- sapply(coordinates, function(x) as.numeric(x[1]))
+latitude <- sapply(coordinates, function(x) as.numeric(x[2]))
+
+
+map_data <- data.frame(longitude, latitude, abundance)
+
+
+map_data <- na.omit(map_data)
+world_map <- map_data("world")
+ggplot() +
+  geom_polygon(data = world_map, 
+             aes(x = long, y = lat, group = group), 
+             fill = "lightgray", color = "gray")+
+  geom_point(data=map_data, aes(x=longitude, y= latitude,size=abundance))+
+  theme_bw()
+
