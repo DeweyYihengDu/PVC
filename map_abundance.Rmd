@@ -21,30 +21,59 @@ library(pheatmap)
 # Import loaction and environment file
 
 ```{r}
-data <- read.csv('./env_abundace.csv')
+raw_data <- read.csv('./dwde2xd2.csv')
 ```
 
 
 ```{r}
-head(data)
+raw_data
 ```
 
-```{r,message=FALSE}
-abundance <- as.numeric(gsub("%", "", data[,5]))
-coordinates <- strsplit(data[,ncol(data)], ' ')  
-longitude <- sapply(coordinates, function(x) as.numeric(x[1]))
-latitude <- sapply(coordinates, function(x) as.numeric(x[2]))
 
 
-map_data <- data.frame(longitude, latitude, abundance)
 
 
-map_data <- na.omit(map_data)
+
+
+
+```{r}
+data <- raw_data %>% select('env1_split_1','abundance','lon','lat') %>% drop_na()
+
+# as.numeric(gsub("%", "", df$percentage_column)) / 100
+data$abundance <- as.numeric(gsub("%", "", data$abundance)) / 100
+
+```
+
+
+
+```{r}
+color_scheme <- c("#AFD888", "#63ADD0", "#FF4540", "#D836C4", "#EE6B9E", "#FF8F40", "#FFFA73", "#00A779")
 world_map <- map_data("world")
+# reduce the NA in last column
+# data <- data[complete.cases(data),]
 ggplot() +
-  geom_polygon(data = world_map, 
-             aes(x = long, y = lat, group = group), 
-             fill = "lightgray", color = "gray")+
-  geom_point(data=map_data, aes(x=longitude, y= latitude,size=abundance))+
-  theme_bw()
+  geom_polygon(data = world_map,
+               aes(x = long, y = lat, group = group),
+               fill = "lightgray", color = "gray") +
+  geom_point(data = data, aes(x = lon,
+                              y = lat, 
+                              fill=factor(env1_split_1),
+                              size = abundance), 
+             alpha = 0.5, shape = 21, 
+             color = 'grey40', stroke = 0.5) +
+  scale_size_continuous(name = "Node size for relative abundance", guide = guide_legend(override.aes = list(color = "black",fill="black"))) +
+  scale_fill_manual(values = color_scheme, 
+                  name = "Node color for sample environmental type", guide = guide_legend(override.aes = list(size = 6)))
+  labs(x = "longitude", y = "latitude") +
+  theme_bw() +
+  NULL
+ggsave("world.pdf",units = "in",width = 17.27, height = 6.8)
+```
+
+
+
+
+
+
+
 
