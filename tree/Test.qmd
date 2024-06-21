@@ -108,7 +108,8 @@ ggplot(filtered_data, aes(x = env1, y = log(abundance_numeric + 1))) +
     geom_boxplot() +
     labs(title = "Abundance Boxplot for Selected Environments",
              x = "Environment",
-             y = "Abundance")
+             y = "Abundance")+
+    theme_bw()
 
 ```
 
@@ -124,7 +125,8 @@ filtered_data %>%
   geom_boxplot(width = 0.1) +
     labs(title = "Abundance Boxplot for Selected Environments",
              x = "Environment",
-             y = "Abundance")
+             y = "Abundance")+
+  theme_bw()
 
 filtered_data %>% lm(log(abundance_numeric + 1) ~ env1, data = .) %>% 
   broom::tidy() %>% 
