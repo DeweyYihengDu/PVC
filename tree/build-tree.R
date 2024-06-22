@@ -3,7 +3,7 @@ library(ape)
 library(ggplot2)
 
 # 读取树文件
-tree <- read.tree("./tree/tree/alignment1.fasta.treefile")
+tree <- read.tree("./tree/tree/alignment_unique.fasta.treefile")
 
 # 绘制基础系统发育树
 p <- ggtree(tree)
@@ -26,7 +26,7 @@ dist_matrix <- cophenetic(tree)
 mean_distances <- rowMeans(dist_matrix)
 
 # 找出平均距离最大的前三个样本
-top3_samples <- names(sort(mean_distances, decreasing = TRUE))[1:3]
+top3_samples <- names(sort(mean_distances, decreasing = TRUE))[1:9]
 
 cat("差异性最大的前 3 个样本是：", top3_samples, "\n")
 
@@ -52,3 +52,4 @@ print(tip_labels)
 # 输出内部节点的标签
 cat("内部节点的标签是：\n")
 print(node_labels)
+

@@ -33,3 +33,4 @@ world.pdf
 quarto/build_tree.html
 quarto/build_tree.qmd
 *.woff
+tree/tree/alignment_unique.fasta.mldist
