@@ -28,3 +28,8 @@ world.pdf
 world.pdf
 .Rproj.user
 .RData
+*.js
+*.css
+quarto/build_tree.html
+quarto/build_tree.qmd
+*.woff
