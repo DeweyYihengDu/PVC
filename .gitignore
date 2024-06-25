@@ -34,3 +34,4 @@ quarto/build_tree.html
 quarto/build_tree.qmd
 *.woff
 tree/tree/alignment_unique.fasta.mldist
+tree/blast_results.out
