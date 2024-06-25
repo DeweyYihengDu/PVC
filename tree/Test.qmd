@@ -7,215 +7,32 @@ output: html_document
 
 # The Result of Text in different envs
 
+```{python}
+from Bio import AlignIO
+from Bio.Align.Applications import MafftCommandline
+from io import StringIO
+import subprocess
 
-```{}
-import pandas as pd
-from scipy.stats import kruskal
-import matplotlib.pyplot as plt
-import seaborn as sns
-import math
-# Load the data
-file_path = '../dwde2xd2.csv'
-data = pd.read_csv(file_path)
+# 读取FASTA文件
+fasta_file = "./arb-silva.de_2024-06-18_id1333196_gapcompressedvertical.fasta"
 
-# Convert 'abundance' from percentage to numeric
-data['abundance_numeric'] = data['abundance'].str.rstrip('%').astype('float') / 100.0
+# 运行MAFFT进行多序列比对
+mafft_cline = MafftCommandline(input=fasta_file)
+stdout, stderr = mafft_cline()
 
-# Select environments for analysis
-selected_envs = ['animal;human', 'animal', 'soil']
-filtered_data = data[data['env1'].isin(selected_envs)]
+# 将比对结果保存到文件
+alignment_file = "./aligned_sequences.fasta"
+with open(alignment_file, "w") as handle:
+    handle.write(stdout)
 
-# Perform Kruskal-Wallis H-test
-stat, p = kruskal(
-    filtered_data[filtered_data['env1'] == 'animal;human']['abundance_numeric'],
-    filtered_data[filtered_data['env1'] == 'animal']['abundance_numeric'],
-    filtered_data[filtered_data['env1'] == 'soil']['abundance_numeric']
-)
+# 运行FastTree构建系统发育树
+fasttree_cline = f"FastTree -nt {alignment_file} > ./phylogenetic_tree.newick"
+subprocess.run(fasttree_cline, shell=True)
 
-print(f"Kruskal-Wallis H-test stat: {stat}, p-value: {p}")
+# 读取并显示系统发育树
+with open("./phylogenetic_tree.newick", "r") as tree_file:
+    phylogenetic_tree = tree_file.read()
 
-# et the aesthetic style of the plots
-sns.set_style("whitegrid")
-
-# Plot the boxplot for abundance in the selected environments
-plt.figure(figsize=(10, 6))
-sns.boxplot(x='env1', y=lohg('abundance_numeric'+1), data=filtered_data[filtered_data['env1'].isin(selected_envs)])
-plt.title('Abundance Boxplot for Selected Environments')
-plt.xlabel('Environment')
-plt.ylabel('Abundance')
-plt.show()
-```
-
-
+print(phylogenetic_tree)
 
 ```
-print('hello world')
-```
-
-
-
-
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
-library(readr)
-library(dplyr)
-library(tidyverse)
-
-# Load the data
-file_path <- '../dwde2xd2.csv'
-data <- read_csv(file_path) %>%
-    mutate(abundance_numeric = parse_number(abundance))
-```
-
-
-```{r}
-# mutate(offspring_none=ifelse(Offspring_Numbers==0,0,1)) %>%
-  # glm(offspring_none ~ Age+mating+Age*mating, family=binomial, data=.) %>% 
-  # summary() %>% .$coefficients %>%
-  # kable(format = "markdown", caption="Coefficients of the binomial model (Age+mating+Age*mating)")
-data %>% 
-  mutate(abundance_numeric_2=ifelse(abundance_numeric==0,0,1)) %>%
-  filter(!is.na(env1_split_1)) %>%
-  glm(abundance_numeric_2 ~ env1_split_1, family=binomial, data=.) %>% 
-  summary()
-
-# Plot the violin Plot
-
-data %>% filter(abundance_numeric >0) %>% filter(!is.na(env1_split_1)) %>% 
-  ggplot(aes(x = env1_split_1, y = log(abundance_numeric + 1))) +
-  geom_violin() +
-  geom_boxplot(width = 0.2, aes(fill=env1_split_1)) +
-  labs(title = "Abundance Boxplot for Selected Environments",
-             x = "Environment",
-             y = "Abundance")+
-  theme_bw()
-
-
-```
-
-
-
-```{r}
-# Convert 'abundance' from percentage to numeric
-# Select environments for analysis
-selected_envs <- c('plant', 'animal', 'soil','aquatic')
-filtered_data <- data %>%
-    filter(env1 %in% selected_envs) %>% 
-  mutate(env1 = str_split(env1, ";" , simplify = TRUE)[, 1]) %>% 
-  mutate(env1 = str_replace(env1, "\\|", ";"))
-
-# Plot the boxplot for abundance in the selected environments
-ggplot(filtered_data, aes(x = env1, y = log(abundance_numeric + 1))) +
-    geom_boxplot() +
-    labs(title = "Abundance Boxplot for Selected Environments",
-             x = "Environment",
-             y = "Abundance")+
-    theme_bw()
-
-```
-
-```{r}
-filtered_data
-```
-
-
-```{r}
-filtered_data %>%
-    ggplot(aes(x = env1, y = log(abundance_numeric + 1))) +
-    geom_violin() +
-  geom_boxplot(width = 0.1) +
-    labs(title = "Abundance Boxplot for Selected Environments",
-             x = "Environment",
-             y = "Abundance")+
-  theme_bw()
-
-filtered_data %>% lm(log(abundance_numeric + 1) ~ env1, data = .) %>% 
-  broom::tidy() %>% 
-  ggplot(aes(x = term, y = estimate)) +
-  geom_col() +
-  coord_flip() +
-  labs(title = "Abundance Boxplot for Selected Environments",
-             x = "Environment",
-             y = "Abundance")
-
-```
-
-```{r}
-filtered_data %>% lm(log(abundance_numeric + 1) ~ env1, data = .) %>%
-  summary()
-
-filtered_data %>% lm(log(abundance_numeric + 1) ~ env1, data = .) %>%
-  anova()
-
-filtered_data %>% lm(log(abundance_numeric + 1) ~ env1, data = .) %>%
-  broom::tidy() %>% select(term, estimate, p.value)
-
-```
-
-
-# Analysis of env1_split_2
-
-```{r}
-data %>% 
-  filter(!is.na(env1_split_2)) %>%
-  ggplot(aes(x = env1_split_2, y = log(abundance_numeric + 1))) +
-  geom_violin() +
-  geom_boxplot(width = 0.2, aes(fill=env1_split_2)) +
-  labs(title = "Abundance Boxplot for Selected Environments",
-             x = "Environment",
-             y = "Abundance")+
-  theme_bw()
-```
-
-```{r}
-# Draw the forest plot
-
-# data %>% 
-#   filter(!is.na(env1_split_2)) %>%
-#   lm(log(abundance_numeric + 1) ~ env1_split_2, data = .) %>%
-#   broom::tidy() %>%
-#   ggplot(aes(x = term, y = estimate)) +
-#   geom_col() +
-#   coord_flip() +
-#   labs(title = "Abundance Boxplot for Selected Environments",
-#              x = "Environment",
-#              y = "Abundance")
-
-# Draw forest plot
-data %>% 
-  filter(!is.na(env1_split_2)) %>%
-  lm(log(abundance_numeric + 1) ~ env1_split_2, data = .) %>%
-  summary()
-  
-```
-
-
-```{r}
-data %>% 
-  filter(!is.na(env1_split_2)) %>%
-  lm(log(abundance_numeric+1) ~ env1_split_2, data = .) -> model
-```
-
-```{r}
-model %>% plot(which = c(1,2,3,5))
-
-```
-
-```{r}
-model %>% anova()
-```
-
-```{r}
-model %>% broom::tidy() %>% 
-  ggplot(aes(x = term, y = estimate)) +
-  geom_col() +
-  coord_flip() +
-  labs(title = "Abundance Boxplot for Selected Environments",
-             x = "Environment",
-             y = "Abundance")
-```
-
-
-
-
-
-
