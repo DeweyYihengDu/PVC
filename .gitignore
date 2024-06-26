@@ -37,3 +37,4 @@ tree/tree/alignment_unique.fasta.mldist
 tree/blast_results.out
 tree/blast_results_with_species.txt
 *.fasta
+tree/merged_blast_results.txt
