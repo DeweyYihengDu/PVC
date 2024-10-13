@@ -1,0 +1,88 @@
+---
+title: "Tidy env info"
+format: pdf
+editor: visual
+---
+
+# Load the csv file and tidy the data
+
+```{r}
+library(tidyverse)
+
+
+# Load the csv file
+env_info <- read_csv("C:\\Users\\DuYih\\Desktop\\sequence-PVC.csv")
+
+
+```
+
+```{r}
+env_info
+```
+
+
+```{r}
+# Tidy the data
+env_info %>% group_by(Project, `Isolation Source`) %>% 
+  summarise(count=n())
+```
+
+```{r}
+env_info %>% group_by(Project) %>% 
+  summarise(count=n())
+```
+
+
+```{r}
+env_info %>% filter(Project == "PRJNA39207") %>% 
+  group_by(Project, `Isolation Source`) %>% 
+  summarise(count=n())
+
+```
+
+
+
+```{r}
+# select the FJ901344 information
+env_info %>% filter(Accession == "FJ902144") 
+head(env_info)
+```
+
+```{r}
+env_info %>% filter(Project == 'PRJNA38465')
+```
+
+```{r}
+# 读取CSV文件
+file_path <- "C:\\Users\\DuYih\\Desktop\\github\\PVC\\env_abundance.csv"
+data <- read.csv(file_path, stringsAsFactors = FALSE)
+
+# 检查是否存在字符 'FJ902375'
+exists <- any(grepl("ERP013152", data))
+
+# 输出结果
+if (exists) {
+  print("字符 'FJ902375' 存在于文件中。")
+} else {
+  print("字符 'FJ902375' 不存在于文件中。")
+}
+
+```
+
+
+
+```{r}
+# 读取文件的前几行
+file_path <- "C:\\Users\\DuYih\\Desktop\\github\\PVC\\samples.info"
+
+# 使用 read.csv 函数的 nrows 参数读取前几行
+num_rows <- 50  # 你想查看的行数
+
+data <- read.csv(file_path, nrows = num_rows)
+
+# 显示数据
+print(data)
+
+```
+
+grep -q 'FJ902375' samples-otus.99.metag.minfilter && echo "字符 'FJ902375' 存在于文件中。" || echo "字符 'FJ902375' 不存在于文件中。"
